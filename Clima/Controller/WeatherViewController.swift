@@ -7,9 +7,9 @@
 //
 
 import UIKit
+import CoreLocation
 
-class WeatherViewController: UIViewController, UITextFieldDelegate, WeatherManagerDelegate {
-    //UITextFieldDelegate is a protocol
+class WeatherViewController: UIViewController {
     
     @IBOutlet weak var conditionImageView: UIImageView!
     @IBOutlet weak var cityLabel: UILabel!
@@ -17,26 +17,53 @@ class WeatherViewController: UIViewController, UITextFieldDelegate, WeatherManag
     @IBOutlet weak var searchTextField: UITextField!
     
     var weatherManager = WeatherManager()
+    let locationManager = CLLocationManager()
     
     override func viewDidLoad() {
-        print(1)
         super.viewDidLoad()
+        locationManager.delegate = self
+        locationManager.requestWhenInUseAuthorization()
+        locationManager.requestLocation()
+        weatherManager.delegate = self
         searchTextField.delegate = self
     }
     
+    @IBAction func currLocationPressed(_ sender: UIButton) {
+        locationManager.requestLocation()
+    }
+    
+}
+
+//MARK: - Extensions
+
+extension WeatherViewController: CLLocationManagerDelegate {
+    
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        if let location = locations.last {
+            locationManager.stopUpdatingLocation()
+            let lat = location.coordinate.latitude
+            let lon = location.coordinate.longitude
+            weatherManager.fetchWeather(latitude: lat, longitude: lon)
+        }
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        
+    }
+}
+
+extension WeatherViewController: UITextFieldDelegate { //UITextFieldDelegate is a protocol
+    
     @IBAction func searchPressed(_ sender: UIButton) {
-        print(2)
         searchTextField.endEditing(true) //Text field is done editing
     }
     
     func textFieldShouldReturn(_ textField: UITextField) -> Bool { //Method from UITextFieldDelegate (aka delegate method)
-        print(3)
         searchTextField.endEditing(true)
         return true
     }
     
     func textFieldShouldEndEditing(_ textField: UITextField) -> Bool {
-        print(4)
         if textField.text != "" {
             return true
         }
@@ -47,22 +74,25 @@ class WeatherViewController: UIViewController, UITextFieldDelegate, WeatherManag
     }
     
     func textFieldDidEndEditing(_ textField: UITextField) { //Method from UITextFieldDelegate (aka delegate method)
-        print(5)
         //Called after endEditing function is called
         if let city = searchTextField.text {
             weatherManager.fetchWeather(cityName: city)
         }
         searchTextField.text = " "
     }
+}
+
+extension WeatherViewController: WeatherManagerDelegate {
     
     func didUpdateWeather(weatherManager: WeatherManager, weather: WeatherModel) {
-        print(6)
-        print(weather)
         DispatchQueue.main.async {
-            self.temperatureLabel.text = String(format: "%.0f", weather.temp)
-            self.conditionImageView.image = UIImage(systemName: weather.condition)
+            self.temperatureLabel.text = weather.temperatureString
+            self.conditionImageView.image = UIImage(systemName: weather.conditionName)
             self.cityLabel.text = weather.cityName
         }
     }
     
+    func didFailWithError(error: Error) {
+        
+    }
 }

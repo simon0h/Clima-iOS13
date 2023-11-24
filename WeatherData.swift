@@ -19,6 +19,11 @@ struct Main: Codable {
 }
 
 struct Weather: Codable {
-    let desciption: String
     let id: Int
+    let description: String
+}
+
+struct LatAndLon: Codable {
+    let lat: Double
+    let lon: Double
 }
